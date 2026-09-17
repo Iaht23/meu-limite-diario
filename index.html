@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#1f6f5c" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <title>Meu Limite Diário</title>
+  <style>
+    :root{
+      --bg:#f5f7f6;--card:#ffffff;--text:#17322c;--muted:#66736f;--brand:#1f6f5c;
+      --brand2:#2e8b74;--danger:#b44545;--warning:#b27a1d;--line:#dfe7e4;--shadow:0 10px 30px rgba(31,111,92,.10)
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text)}
+    .app{max-width:760px;margin:0 auto;padding:18px 14px 42px}
+    h1{font-size:1.55rem;margin:0 0 3px} .sub{color:var(--muted);margin:0 0 18px;font-size:.93rem}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:14px;box-shadow:var(--shadow)}
+    .hidden{display:none!important}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    label{font-size:.83rem;font-weight:700;display:block;margin:0 0 6px} input,select{width:100%;padding:12px;border:1px solid #cfdad6;border-radius:12px;font-size:1rem;background:#fff;color:var(--text)}
+    input:focus,select:focus{outline:2px solid rgba(31,111,92,.16);border-color:var(--brand)}
+    button{border:0;border-radius:12px;padding:12px 14px;font-size:.96rem;font-weight:700;cursor:pointer}.primary{background:var(--brand);color:white}.secondary{background:#e9f3f0;color:var(--brand)}.ghost{background:#f1f4f3;color:var(--text)}.danger{background:#fbeaea;color:var(--danger)}
+    .periods{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 12px}.period{padding:8px 11px;background:#edf4f2;color:var(--brand)}.period.active{background:var(--brand);color:#fff}
+    .hero{text-align:center;padding:24px 18px}.hero .date{font-size:.9rem;color:var(--muted)}.hero .amount{font-size:2.7rem;font-weight:800;line-height:1.08;margin:6px 0}.hero .caption{font-size:.9rem;color:var(--muted)}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:18px}.stat{background:#f7faf9;border:1px solid var(--line);border-radius:13px;padding:10px}.stat small{color:var(--muted);display:block;font-size:.72rem}.stat strong{display:block;margin-top:5px;font-size:.95rem}
+    .progress{height:14px;background:#e7eeec;border-radius:99px;overflow:hidden;margin-top:10px}.bar{height:100%;background:var(--brand2);width:0%;transition:.2s}.bar.over{background:var(--danger)}
+    .progress-label{display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted);margin-top:5px}.notice{margin-top:12px;padding:11px 12px;border-radius:12px;background:#f4f8f7;font-size:.88rem}.notice.over{background:#fff0f0;color:#8d3434}.notice.good{background:#eef8f0;color:#356642}
+    .forecast-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;text-align:left}.forecast-card{border:1px solid var(--line);border-radius:14px;padding:13px;background:#fbfcfc}.forecast-card.sim{background:#eef6f3;border-color:#cee2dc}.forecast-card small{display:block;color:var(--muted);font-size:.74rem;font-weight:700;margin-bottom:5px}.forecast-card strong{display:block;font-size:1.25rem}.forecast-card span{display:block;color:var(--muted);font-size:.78rem;margin-top:4px;line-height:1.35}.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+    .expense-form{display:grid;gap:10px}.expense-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.section-title h2{font-size:1.08rem;margin:0}.badge{font-size:.76rem;color:var(--muted)}
+    table{width:100%;border-collapse:collapse;font-size:.86rem}th,td{text-align:left;padding:10px 7px;border-bottom:1px solid var(--line)}th{color:var(--muted);font-size:.76rem;text-transform:uppercase}.positive{color:#2e7454;font-weight:700}.negative{color:#a14141;font-weight:700}
+    .empty{color:var(--muted);font-size:.9rem;text-align:center;padding:20px 8px}.expenses{display:grid;gap:8px;margin-top:12px}.expense{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;border-bottom:1px solid var(--line);padding:9px 0}.expense:last-child{border-bottom:0}.expense .meta{font-size:.75rem;color:var(--muted)}.expense .value{font-weight:800}.iconbtn{padding:7px 9px;border-radius:9px;background:#f6eeee;color:var(--danger)}
+    .footer{text-align:center;color:var(--muted);font-size:.76rem;margin-top:18px}.topline{display:flex;justify-content:space-between;align-items:start;gap:10px}.install{white-space:nowrap;padding:8px 10px;font-size:.8rem}
+    @media(max-width:620px){.grid,.grid3{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}.forecast-grid{grid-template-columns:1fr 1fr}.hero .amount{font-size:2.35rem}.actions{grid-template-columns:1fr}.expense{grid-template-columns:1fr auto}.expense .iconbtn{grid-column:2}.table-wrap{overflow-x:auto}}
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="topline">
+    <div><h1>💰 Meu Limite Diário</h1><p class="sub">Quanto posso gastar hoje sem me complicar?</p></div>
+    <button id="installBtn" class="secondary install hidden">Instalar app</button>
+  </div>
+
+  <section id="setupCard" class="card">
+    <div class="section-title"><h2>Criar um período</h2><span class="badge">Seus dados ficam neste aparelho</span></div>
+    <div class="grid">
+      <div><label for="budget">Valor disponível</label><input id="budget" inputmode="decimal" placeholder="Ex.: 600,00" /></div>
+      <div><label for="startDate">Data de início</label><input id="startDate" type="date" /></div>
+    </div>
+    <label style="margin-top:13px">Período</label>
+    <div class="periods" id="periods">
+      <button class="period" data-days="2">2 dias</button><button class="period" data-days="3">3 dias</button><button class="period" data-days="4">4 dias</button><button class="period active" data-days="7">7 dias</button><button class="period" data-days="30">30 dias</button><button class="period" data-days="custom">Personalizado</button>
+    </div>
+    <div id="customWrap" class="hidden"><label for="customDays">Quantidade de dias</label><input id="customDays" type="number" min="1" max="365" placeholder="Ex.: 12" /></div>
+    <button id="startBtn" class="primary" style="width:100%;margin-top:14px">Começar período</button>
+  </section>
+
+  <section id="dashboard" class="hidden">
+    <div class="card hero">
+      <div class="date" id="todayLabel"></div><div class="amount" id="todayAvailable">R$ 0,00</div><div class="caption">disponível para gastar hoje</div>
+      <div class="stats">
+        <div class="stat"><small>Gasto hoje</small><strong id="spentToday">R$ 0,00</strong></div>
+        <div class="stat"><small>Ainda pode gastar</small><strong id="remainingToday">R$ 0,00</strong></div>
+        <div class="stat"><small>Saldo total</small><strong id="balanceTotal">R$ 0,00</strong></div>
+        <div class="stat"><small>Dias restantes</small><strong id="daysLeft">0</strong></div>
+      </div>
+      <div class="progress"><div id="progressBar" class="bar"></div></div>
+      <div class="progress-label"><span id="progressStart">R$ 0,00</span><span id="progressEnd">R$ 0,00</span></div>
+      <div class="forecast-grid">
+        <div class="forecast-card">
+          <small>SEU LIMITE DE HOJE</small>
+          <strong id="dailyLimit">R$ 0,00</strong>
+          <span id="dailyLimitDetail">Valor definido para o dia atual.</span>
+        </div>
+        <div class="forecast-card sim">
+          <small id="forecastTitle">SE VOCÊ NÃO GASTAR MAIS HOJE</small>
+          <strong id="noSpendForecast">R$ 0,00</strong>
+          <span id="noSpendDetail">Projeção para os próximos dias.</span>
+        </div>
+      </div>
+      <div id="message" class="notice"></div>
+      <div class="actions"><button id="addBtn" class="primary">＋ Adicionar gasto</button><button id="resetBtn" class="ghost">Criar novo período</button></div>
+    </div>
+
+    <div id="expenseCard" class="card hidden">
+      <div class="section-title"><h2>Registrar gasto</h2><button id="closeExpense" class="ghost">Fechar</button></div>
+      <div class="expense-form">
+        <div class="grid">
+          <div><label for="expenseValue">Valor</label><input id="expenseValue" inputmode="decimal" placeholder="Ex.: 18,90" /></div>
+          <div><label for="expenseDate">Data</label><input id="expenseDate" type="date" /></div>
+        </div>
+        <div class="grid">
+          <div><label for="expenseDesc">Descrição</label><input id="expenseDesc" placeholder="Ex.: Almoço" /></div>
+          <div><label for="expenseCat">Categoria (opcional)</label><select id="expenseCat"><option value="">Sem categoria</option><option>Alimentação</option><option>Transporte</option><option>Lazer</option><option>Compras</option><option>Saúde</option><option>Outros</option></select></div>
+        </div>
+        <button id="saveExpense" class="primary">Salvar gasto</button>
+      </div>
+      <div id="expenseList" class="expenses"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title"><h2>Histórico</h2><span class="badge" id="periodInfo"></span></div>
+      <div class="notice" style="margin:0 0 10px">
+        <strong>Como ler:</strong> “Limite” é o valor que realmente vale naquele dia. “Projeção” mostra quanto seria o limite diário se você não fizer novos gastos até aquela data.
+      </div>
+      <div class="table-wrap"><table><thead><tr><th>Dia</th><th>Limite</th><th>Gastei</th><th>Resultado</th><th>Projeção sem novos gastos</th></tr></thead><tbody id="historyBody"></tbody></table></div>
+      <div id="historyEmpty" class="empty hidden">Nenhum dia registrado ainda.</div>
+    </div>
+  </section>
+  <div class="footer">O limite real muda conforme seus gastos. As projeções são simulações e não alteram o valor de hoje.</div>
+</div>
+<script>
+const STORAGE='meuLimiteDiario.v1'; let state=null; let selectedDays=7; let deferredPrompt=null;
+const $=id=>document.getElementById(id); const money=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v||0));
+const parseMoney=s=>Number(String(s).replace(/\./g,'').replace(',','.').replace(/[^0-9.-]/g,''))||0;
+const iso=d=>{const x=new Date(d); return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`};
+const fromISO=s=>{const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d)}; const addDays=(s,n)=>{let d=fromISO(s);d.setDate(d.getDate()+n);return iso(d)};
+const diffDays=(a,b)=>Math.floor((fromISO(b)-fromISO(a))/86400000);
+const fmtDate=s=>fromISO(s).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+function todayISO(){return iso(new Date())}
+function save(){localStorage.setItem(STORAGE,JSON.stringify(state))}
+function load(){try{state=JSON.parse(localStorage.getItem(STORAGE))}catch(e){state=null}}
+function periodDays(){return state.days}
+function endDate(){return addDays(state.startDate,state.days-1)}
+function expensesOn(date){return state.expenses.filter(e=>e.date===date)}
+function spentOn(date){return expensesOn(date).reduce((s,e)=>s+e.value,0)}
+function totalSpentBefore(date){return state.expenses.filter(e=>e.date<date).reduce((s,e)=>s+e.value,0)}
+function totalSpent(){return state.expenses.reduce((s,e)=>s+e.value,0)}
+function remainingBalance(){return Math.max(0,state.budget-totalSpent())}
+function dayIndex(date){return diffDays(state.startDate,date)}
+function effectiveDate(){let t=todayISO(); if(t<state.startDate)return state.startDate; if(t>endDate())return endDate(); return t}
+function limitForDate(date){
+  let idx=dayIndex(date); if(idx<0||idx>=state.days)return 0;
+  let spentBefore=totalSpentBefore(date); let bal=Math.max(0,state.budget-spentBefore); let remainingDays=state.days-idx; return remainingDays>0?bal/remainingDays:0;
+}
+function daysRemainingFrom(date){let idx=dayIndex(date); return Math.max(0,state.days-idx)}
+function render(){
+  if(!state){$('setupCard').classList.remove('hidden');$('dashboard').classList.add('hidden');return}
+  $('setupCard').classList.add('hidden');$('dashboard').classList.remove('hidden');
+  const d=effectiveDate(), lim=limitForDate(d), spent=spentOn(d), still=lim-spent, bal=remainingBalance(), left=daysRemainingFrom(d);
+  $('todayLabel').textContent=`Hoje — ${new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}`;
+  $('todayAvailable').textContent=money(Math.max(0,still)); $('spentToday').textContent=money(spent); $('remainingToday').textContent=money(Math.max(0,still)); $('balanceTotal').textContent=money(bal); $('daysLeft').textContent=left;
+  $('progressStart').textContent=money(spent); $('progressEnd').textContent=money(lim); let pct=lim>0?Math.min(100,(spent/lim)*100):0; $('progressBar').style.width=pct+'%'; $('progressBar').classList.toggle('over',spent>lim);
+  $('dailyLimit').textContent=money(lim);
+  $('dailyLimitDetail').textContent=`Você já gastou ${money(spent)} e ainda tem ${money(Math.max(0,still))} para hoje.`;
+  const futureDays=Math.max(0,left-1);
+  if(futureDays>0){
+    const projected=bal/futureDays;
+    $('forecastTitle').textContent=spent>0?'SE VOCÊ NÃO GASTAR MAIS HOJE':'SE VOCÊ NÃO GASTAR HOJE';
+    $('noSpendForecast').textContent=`${money(projected)}/dia`;
+    $('noSpendDetail').textContent=`Saldo atual ${money(bal)} ÷ ${futureDays} ${futureDays===1?'dia':'dias'} restantes.`;
+  }else{
+    $('forecastTitle').textContent='FIM DO PERÍODO';
+    $('noSpendForecast').textContent=money(bal);
+    $('noSpendDetail').textContent='Hoje é o último dia; não há próximos dias para redistribuir.';
+  }
+  const msg=$('message'); msg.className='notice';
+  if(todayISO()<state.startDate){msg.textContent=`Seu período começa em ${fmtDate(state.startDate)}. Até lá, os valores abaixo são apenas uma projeção.`}
+  else if(todayISO()>endDate()){msg.textContent=`Período encerrado. Você gastou ${money(totalSpent())} de ${money(state.budget)}.`}
+  else if(spent>lim){msg.classList.add('over'); msg.textContent=`Você passou ${money(spent-lim)} do limite de hoje. A coluna ao lado mostra como o saldo que restou seria dividido pelos próximos dias.`}
+  else if(spent>0){msg.classList.add('good'); msg.textContent=`O seu limite de hoje continua sendo ${money(lim)}. A coluna ao lado é só uma simulação: ela mostra o valor por dia amanhã se você não gastar mais nada hoje.`}
+  else{msg.textContent=`Hoje seu limite é ${money(lim)}. A coluna ao lado é apenas uma simulação do que aconteceria amanhã se você não gastar nada hoje.`}
+  $('periodInfo').textContent=`${fmtDate(state.startDate)} a ${fmtDate(endDate())}`; renderHistory(); renderExpenses();
+}
+function renderHistory(){
+  let html='';
+  const t=todayISO(), currentBal=remainingBalance();
+  for(let i=0;i<state.days;i++){
+    let d=addDays(state.startDate,i), future=d>t, past=d<t;
+    let lim=future?null:limitForDate(d), spent=future?0:spentOn(d);
+    let result=lim===null?null:lim-spent;
+    let proj='—';
+    if(!past){
+      const rem=daysRemainingFrom(d);
+      if(rem>0) proj=money(currentBal/rem)+'/dia';
+    }
+    html+=`<tr><td>${fmtDate(d)}</td><td>${lim===null?'—':money(lim)}</td><td>${future?'—':money(spent)}</td><td class="${result===null?'':(result>=0?'positive':'negative')}">${result===null?'—':(result>=0?'+':'')+money(result)}</td><td>${proj}</td></tr>`
+  }
+  $('historyBody').innerHTML=html; $('historyEmpty').classList.toggle('hidden',state.days>0)
+}
+function renderExpenses(){
+  const list=$('expenseList'); if(!state.expenses.length){list.innerHTML='<div class="empty">Nenhum gasto lançado.</div>';return}
+  list.innerHTML=[...state.expenses].sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id).map(e=>`<div class="expense"><div><strong>${e.desc||'Gasto'}</strong><div class="meta">${fmtDate(e.date)}${e.cat?' • '+e.cat:''}</div></div><div class="value">${money(e.value)}</div><button class="iconbtn" onclick="removeExpense(${e.id})">Excluir</button></div>`).join('')
+}
+function removeExpense(id){state.expenses=state.expenses.filter(e=>e.id!==id);save();render()}
+window.removeExpense=removeExpense;
+function resetForm(){selectedDays=7;document.querySelectorAll('.period').forEach(b=>b.classList.toggle('active',b.dataset.days==='7'));$('customWrap').classList.add('hidden');$('budget').value='';$('customDays').value='';$('startDate').value=todayISO()}
+document.querySelectorAll('.period').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.period').forEach(b=>b.classList.remove('active'));btn.classList.add('active');$('customWrap').classList.toggle('hidden',btn.dataset.days!=='custom');selectedDays=btn.dataset.days==='custom'?'custom':Number(btn.dataset.days)}));
+$('startBtn').addEventListener('click',()=>{let budget=parseMoney($('budget').value);let days=selectedDays==='custom'?Number($('customDays').value):selectedDays;let start=$('startDate').value||todayISO();if(budget<=0||!days||days<1){alert('Informe um valor disponível e um período válido.');return}state={budget,days,startDate:start,expenses:[],createdAt:Date.now()};save();render()});
+$('addBtn').addEventListener('click',()=>{$('expenseCard').classList.remove('hidden');$('expenseDate').value=effectiveDate();$('expenseValue').focus()}); $('closeExpense').addEventListener('click',()=>$('expenseCard').classList.add('hidden'));
+$('saveExpense').addEventListener('click',()=>{let value=parseMoney($('expenseValue').value),date=$('expenseDate').value,desc=$('expenseDesc').value.trim(),cat=$('expenseCat').value;if(value<=0||!date){alert('Informe o valor e a data do gasto.');return} if(date<state.startDate||date>endDate()){alert('A data precisa estar dentro do período atual.');return}state.expenses.push({id:Date.now(),value,date,desc,cat});save();$('expenseValue').value='';$('expenseDesc').value='';$('expenseCat').value='';render()});
+$('resetBtn').addEventListener('click',()=>{if(confirm('Criar um novo período? O período atual será apagado deste aparelho.')){localStorage.removeItem(STORAGE);state=null;resetForm();render()}});
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('installBtn').classList.remove('hidden')});$('installBtn').addEventListener('click',async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$('installBtn').classList.add('hidden')});
+if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(()=>{})}
+load();resetForm();render();
+</script>
+</body>
+</html>

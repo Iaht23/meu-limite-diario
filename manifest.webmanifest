@@ -1,0 +1,12 @@
+{
+  "name": "Meu Limite Diário",
+  "short_name": "Limite Diário",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f5f7f6",
+  "theme_color": "#1f6f5c",
+  "description": "Controle pessoal de limite diário de gastos com recálculo automático.",
+  "icons": [
+    {"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+  ]
+}
