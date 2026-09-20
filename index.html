@@ -25,7 +25,7 @@
     .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:18px}.stat{background:#f7faf9;border:1px solid var(--line);border-radius:13px;padding:10px}.stat small{color:var(--muted);display:block;font-size:.72rem}.stat strong{display:block;margin-top:5px;font-size:.95rem}
     .progress{height:14px;background:#e7eeec;border-radius:99px;overflow:hidden;margin-top:10px}.bar{height:100%;background:var(--brand2);width:0%;transition:.2s}.bar.over{background:var(--danger)}
     .progress-label{display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted);margin-top:5px}.notice{margin-top:12px;padding:11px 12px;border-radius:12px;background:#f4f8f7;font-size:.88rem}.notice.over{background:#fff0f0;color:#8d3434}.notice.good{background:#eef8f0;color:#356642}
-    .forecast-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;text-align:left}.forecast-card{border:1px solid var(--line);border-radius:14px;padding:13px;background:#fbfcfc}.forecast-card.sim{background:#eef6f3;border-color:#cee2dc}.forecast-card small{display:block;color:var(--muted);font-size:.74rem;font-weight:700;margin-bottom:5px}.forecast-card strong{display:block;font-size:1.25rem}.forecast-card span{display:block;color:var(--muted);font-size:.78rem;margin-top:4px;line-height:1.35}.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+    .forecast-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;text-align:left}.forecast-card{border:1px solid var(--line);border-radius:14px;padding:13px;background:#fbfcfc}.forecast-card.sim{background:#eef6f3;border-color:#cee2dc}.forecast-card small{display:block;color:var(--muted);font-size:.74rem;font-weight:700;margin-bottom:5px}.forecast-card strong{display:block;font-size:1.25rem}.forecast-card span{display:block;color:var(--muted);font-size:.78rem;margin-top:4px;line-height:1.35}.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}.actions #resetBtn{grid-column:1/-1}.income-btn{background:#e8f6ee;color:#276749}.income-note{background:#eef8f2;color:#356642}.income-value{color:#2e7454}
     .expense-form{display:grid;gap:10px}.expense-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
     .section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.section-title h2{font-size:1.08rem;margin:0}.badge{font-size:.76rem;color:var(--muted)}
     table{width:100%;border-collapse:collapse;font-size:.86rem}th,td{text-align:left;padding:10px 7px;border-bottom:1px solid var(--line)}th{color:var(--muted);font-size:.76rem;text-transform:uppercase}.positive{color:#2e7454;font-weight:700}.negative{color:#a14141;font-weight:700}
@@ -79,7 +79,7 @@
         </div>
       </div>
       <div id="message" class="notice"></div>
-      <div class="actions"><button id="addBtn" class="primary">＋ Adicionar gasto</button><button id="resetBtn" class="ghost">Criar novo período</button></div>
+      <div class="actions"><button id="addBtn" class="primary">＋ Adicionar gasto</button><button id="addIncomeBtn" class="income-btn">＋ Adicionar entrada</button><button id="resetBtn" class="ghost">Criar novo período</button></div>
     </div>
 
     <div id="expenseCard" class="card hidden">
@@ -98,16 +98,30 @@
       <div id="expenseList" class="expenses"></div>
     </div>
 
+    <div id="incomeCard" class="card hidden">
+      <div class="section-title"><h2>Registrar entrada extra</h2><button id="closeIncome" class="ghost">Fechar</button></div>
+      <div class="notice income-note" style="margin:0 0 12px">O valor será somado ao saldo do período e o limite diário será recalculado automaticamente.</div>
+      <div class="expense-form">
+        <div class="grid">
+          <div><label for="incomeValue">Valor da entrada</label><input id="incomeValue" inputmode="decimal" placeholder="Ex.: 15,00" /></div>
+          <div><label for="incomeDate">Data</label><input id="incomeDate" type="date" /></div>
+        </div>
+        <div><label for="incomeDesc">Descrição (opcional)</label><input id="incomeDesc" placeholder="Ex.: Dinheiro extra" /></div>
+        <button id="saveIncome" class="primary">Adicionar ao saldo</button>
+      </div>
+      <div id="incomeList" class="expenses"></div>
+    </div>
+
     <div class="card">
       <div class="section-title"><h2>Histórico</h2><span class="badge" id="periodInfo"></span></div>
       <div class="notice" style="margin:0 0 10px">
-        <strong>Como ler:</strong> “Limite” é o valor que realmente vale naquele dia. “Projeção” mostra quanto seria o limite diário se você não fizer novos gastos até aquela data.
+        <strong>Como ler:</strong> “Limite” é o valor que realmente vale naquele dia. Entradas extras passam a fazer parte do saldo a partir da data em que foram registradas. “Projeção” mostra quanto seria o limite diário se você não fizer novos gastos.
       </div>
-      <div class="table-wrap"><table><thead><tr><th>Dia</th><th>Limite</th><th>Gastei</th><th>Resultado</th><th>Projeção sem novos gastos</th></tr></thead><tbody id="historyBody"></tbody></table></div>
+      <div class="table-wrap"><table><thead><tr><th>Dia</th><th>Limite</th><th>Entrada</th><th>Gastei</th><th>Resultado</th><th>Projeção sem novos gastos</th></tr></thead><tbody id="historyBody"></tbody></table></div>
       <div id="historyEmpty" class="empty hidden">Nenhum dia registrado ainda.</div>
     </div>
   </section>
-  <div class="footer">O limite real muda conforme seus gastos. As projeções são simulações e não alteram o valor de hoje.</div>
+  <div class="footer">O limite real muda conforme seus gastos e entradas extras. As projeções são simulações e não alteram o valor de hoje.</div>
 </div>
 <script>
 const STORAGE='meuLimiteDiario.v1'; let state=null; let selectedDays=7; let deferredPrompt=null;
@@ -119,19 +133,32 @@ const diffDays=(a,b)=>Math.floor((fromISO(b)-fromISO(a))/86400000);
 const fmtDate=s=>fromISO(s).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
 function todayISO(){return iso(new Date())}
 function save(){localStorage.setItem(STORAGE,JSON.stringify(state))}
-function load(){try{state=JSON.parse(localStorage.getItem(STORAGE))}catch(e){state=null}}
+function load(){
+  try{
+    state=JSON.parse(localStorage.getItem(STORAGE));
+    if(state){
+      if(!Array.isArray(state.expenses))state.expenses=[];
+      if(!Array.isArray(state.incomes))state.incomes=[];
+    }
+  }catch(e){state=null}
+}
 function periodDays(){return state.days}
 function endDate(){return addDays(state.startDate,state.days-1)}
 function expensesOn(date){return state.expenses.filter(e=>e.date===date)}
+function incomesOn(date){return state.incomes.filter(e=>e.date===date)}
 function spentOn(date){return expensesOn(date).reduce((s,e)=>s+e.value,0)}
+function incomeOn(date){return incomesOn(date).reduce((s,e)=>s+e.value,0)}
 function totalSpentBefore(date){return state.expenses.filter(e=>e.date<date).reduce((s,e)=>s+e.value,0)}
 function totalSpent(){return state.expenses.reduce((s,e)=>s+e.value,0)}
-function remainingBalance(){return Math.max(0,state.budget-totalSpent())}
+function totalIncomeThrough(date){return state.incomes.filter(e=>e.date<=date).reduce((s,e)=>s+e.value,0)}
+function totalIncome(){return state.incomes.reduce((s,e)=>s+e.value,0)}
+function totalAvailable(){return state.budget+totalIncome()}
+function remainingBalance(){return Math.max(0,totalAvailable()-totalSpent())}
 function dayIndex(date){return diffDays(state.startDate,date)}
 function effectiveDate(){let t=todayISO(); if(t<state.startDate)return state.startDate; if(t>endDate())return endDate(); return t}
 function limitForDate(date){
   let idx=dayIndex(date); if(idx<0||idx>=state.days)return 0;
-  let spentBefore=totalSpentBefore(date); let bal=Math.max(0,state.budget-spentBefore); let remainingDays=state.days-idx; return remainingDays>0?bal/remainingDays:0;
+  let spentBefore=totalSpentBefore(date); let incomeThrough=totalIncomeThrough(date); let bal=Math.max(0,state.budget+incomeThrough-spentBefore); let remainingDays=state.days-idx; return remainingDays>0?bal/remainingDays:0;
 }
 function daysRemainingFrom(date){let idx=dayIndex(date); return Math.max(0,state.days-idx)}
 function render(){
@@ -156,25 +183,25 @@ function render(){
   }
   const msg=$('message'); msg.className='notice';
   if(todayISO()<state.startDate){msg.textContent=`Seu período começa em ${fmtDate(state.startDate)}. Até lá, os valores abaixo são apenas uma projeção.`}
-  else if(todayISO()>endDate()){msg.textContent=`Período encerrado. Você gastou ${money(totalSpent())} de ${money(state.budget)}.`}
+  else if(todayISO()>endDate()){msg.textContent=`Período encerrado. Você gastou ${money(totalSpent())} de ${money(totalAvailable())} disponíveis no total (${money(state.budget)} iniciais + ${money(totalIncome())} em entradas).`}
   else if(spent>lim){msg.classList.add('over'); msg.textContent=`Você passou ${money(spent-lim)} do limite de hoje. A coluna ao lado mostra como o saldo que restou seria dividido pelos próximos dias.`}
   else if(spent>0){msg.classList.add('good'); msg.textContent=`O seu limite de hoje continua sendo ${money(lim)}. A coluna ao lado é só uma simulação: ela mostra o valor por dia amanhã se você não gastar mais nada hoje.`}
   else{msg.textContent=`Hoje seu limite é ${money(lim)}. A coluna ao lado é apenas uma simulação do que aconteceria amanhã se você não gastar nada hoje.`}
-  $('periodInfo').textContent=`${fmtDate(state.startDate)} a ${fmtDate(endDate())}`; renderHistory(); renderExpenses();
+  $('periodInfo').textContent=`${fmtDate(state.startDate)} a ${fmtDate(endDate())} • Entradas: ${money(totalIncome())}`; renderHistory(); renderExpenses(); renderIncomes();
 }
 function renderHistory(){
   let html='';
   const t=todayISO(), currentBal=remainingBalance();
   for(let i=0;i<state.days;i++){
     let d=addDays(state.startDate,i), future=d>t, past=d<t;
-    let lim=future?null:limitForDate(d), spent=future?0:spentOn(d);
+    let lim=future?null:limitForDate(d), spent=future?0:spentOn(d), income=incomeOn(d);
     let result=lim===null?null:lim-spent;
     let proj='—';
     if(!past){
       const rem=daysRemainingFrom(d);
       if(rem>0) proj=money(currentBal/rem)+'/dia';
     }
-    html+=`<tr><td>${fmtDate(d)}</td><td>${lim===null?'—':money(lim)}</td><td>${future?'—':money(spent)}</td><td class="${result===null?'':(result>=0?'positive':'negative')}">${result===null?'—':(result>=0?'+':'')+money(result)}</td><td>${proj}</td></tr>`
+    html+=`<tr><td>${fmtDate(d)}</td><td>${lim===null?'—':money(lim)}</td><td class="${income>0?'positive':''}">${income>0?'+'+money(income):'—'}</td><td>${future?'—':money(spent)}</td><td class="${result===null?'':(result>=0?'positive':'negative')}">${result===null?'—':(result>=0?'+':'')+money(result)}</td><td>${proj}</td></tr>`
   }
   $('historyBody').innerHTML=html; $('historyEmpty').classList.toggle('hidden',state.days>0)
 }
@@ -182,13 +209,24 @@ function renderExpenses(){
   const list=$('expenseList'); if(!state.expenses.length){list.innerHTML='<div class="empty">Nenhum gasto lançado.</div>';return}
   list.innerHTML=[...state.expenses].sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id).map(e=>`<div class="expense"><div><strong>${e.desc||'Gasto'}</strong><div class="meta">${fmtDate(e.date)}${e.cat?' • '+e.cat:''}</div></div><div class="value">${money(e.value)}</div><button class="iconbtn" onclick="removeExpense(${e.id})">Excluir</button></div>`).join('')
 }
+function renderIncomes(){
+  const list=$('incomeList');
+  if(!state.incomes.length){list.innerHTML='<div class="empty">Nenhuma entrada extra lançada.</div>';return}
+  list.innerHTML=[...state.incomes].sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id).map(e=>`<div class="expense"><div><strong>${e.desc||'Entrada extra'}</strong><div class="meta">${fmtDate(e.date)} • somada ao saldo</div></div><div class="value income-value">+${money(e.value)}</div><button class="iconbtn" onclick="removeIncome(${e.id})">Excluir</button></div>`).join('')
+}
 function removeExpense(id){state.expenses=state.expenses.filter(e=>e.id!==id);save();render()}
+function removeIncome(id){state.incomes=state.incomes.filter(e=>e.id!==id);save();render()}
 window.removeExpense=removeExpense;
+window.removeIncome=removeIncome;
 function resetForm(){selectedDays=7;document.querySelectorAll('.period').forEach(b=>b.classList.toggle('active',b.dataset.days==='7'));$('customWrap').classList.add('hidden');$('budget').value='';$('customDays').value='';$('startDate').value=todayISO()}
 document.querySelectorAll('.period').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.period').forEach(b=>b.classList.remove('active'));btn.classList.add('active');$('customWrap').classList.toggle('hidden',btn.dataset.days!=='custom');selectedDays=btn.dataset.days==='custom'?'custom':Number(btn.dataset.days)}));
-$('startBtn').addEventListener('click',()=>{let budget=parseMoney($('budget').value);let days=selectedDays==='custom'?Number($('customDays').value):selectedDays;let start=$('startDate').value||todayISO();if(budget<=0||!days||days<1){alert('Informe um valor disponível e um período válido.');return}state={budget,days,startDate:start,expenses:[],createdAt:Date.now()};save();render()});
-$('addBtn').addEventListener('click',()=>{$('expenseCard').classList.remove('hidden');$('expenseDate').value=effectiveDate();$('expenseValue').focus()}); $('closeExpense').addEventListener('click',()=>$('expenseCard').classList.add('hidden'));
+$('startBtn').addEventListener('click',()=>{let budget=parseMoney($('budget').value);let days=selectedDays==='custom'?Number($('customDays').value):selectedDays;let start=$('startDate').value||todayISO();if(budget<=0||!days||days<1){alert('Informe um valor disponível e um período válido.');return}state={budget,days,startDate:start,expenses:[],incomes:[],createdAt:Date.now()};save();render()});
+$('addBtn').addEventListener('click',()=>{$('incomeCard').classList.add('hidden');$('expenseCard').classList.remove('hidden');$('expenseDate').value=effectiveDate();$('expenseValue').focus()});
+$('closeExpense').addEventListener('click',()=>$('expenseCard').classList.add('hidden'));
+$('addIncomeBtn').addEventListener('click',()=>{$('expenseCard').classList.add('hidden');$('incomeCard').classList.remove('hidden');$('incomeDate').value=effectiveDate();$('incomeValue').focus()});
+$('closeIncome').addEventListener('click',()=>$('incomeCard').classList.add('hidden'));
 $('saveExpense').addEventListener('click',()=>{let value=parseMoney($('expenseValue').value),date=$('expenseDate').value,desc=$('expenseDesc').value.trim(),cat=$('expenseCat').value;if(value<=0||!date){alert('Informe o valor e a data do gasto.');return} if(date<state.startDate||date>endDate()){alert('A data precisa estar dentro do período atual.');return}state.expenses.push({id:Date.now(),value,date,desc,cat});save();$('expenseValue').value='';$('expenseDesc').value='';$('expenseCat').value='';render()});
+$('saveIncome').addEventListener('click',()=>{let value=parseMoney($('incomeValue').value),date=$('incomeDate').value,desc=$('incomeDesc').value.trim();if(value<=0||!date){alert('Informe o valor e a data da entrada.');return}if(date<state.startDate||date>endDate()){alert('A data precisa estar dentro do período atual.');return}state.incomes.push({id:Date.now(),value,date,desc});save();$('incomeValue').value='';$('incomeDesc').value='';render()});
 $('resetBtn').addEventListener('click',()=>{if(confirm('Criar um novo período? O período atual será apagado deste aparelho.')){localStorage.removeItem(STORAGE);state=null;resetForm();render()}});
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('installBtn').classList.remove('hidden')});$('installBtn').addEventListener('click',async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$('installBtn').classList.add('hidden')});
 if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(()=>{})}
