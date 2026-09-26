@@ -30,8 +30,8 @@
     .section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.section-title h2{font-size:1.08rem;margin:0}.badge{font-size:.76rem;color:var(--muted)}
     table{width:100%;border-collapse:collapse;font-size:.86rem}th,td{text-align:left;padding:10px 7px;border-bottom:1px solid var(--line)}th{color:var(--muted);font-size:.76rem;text-transform:uppercase}.positive{color:#2e7454;font-weight:700}.negative{color:#a14141;font-weight:700}
     .empty{color:var(--muted);font-size:.9rem;text-align:center;padding:20px 8px}.expenses{display:grid;gap:8px;margin-top:12px}.expense{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;border-bottom:1px solid var(--line);padding:9px 0}.expense:last-child{border-bottom:0}.expense .meta{font-size:.75rem;color:var(--muted)}.expense .value{font-weight:800}.iconbtn{padding:7px 9px;border-radius:9px;background:#f6eeee;color:var(--danger)}
-    .footer{text-align:center;color:var(--muted);font-size:.76rem;margin-top:18px}.topline{display:flex;justify-content:space-between;align-items:start;gap:10px}.install{white-space:nowrap;padding:8px 10px;font-size:.8rem}
-    @media(max-width:620px){.grid,.grid3{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}.forecast-grid{grid-template-columns:1fr 1fr}.hero .amount{font-size:2.35rem}.actions{grid-template-columns:1fr}.expense{grid-template-columns:1fr auto}.expense .iconbtn{grid-column:2}.table-wrap{overflow-x:auto}}
+    .report-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}.report-stat{background:#f7faf9;border:1px solid var(--line);border-radius:13px;padding:11px}.report-stat small{display:block;color:var(--muted);font-size:.72rem}.report-stat strong{display:block;margin-top:5px;font-size:.98rem}.report-block{margin-top:16px}.report-block h3{font-size:.92rem;margin:0 0 8px}.report-select{max-width:100%;margin-top:8px}.report-note{font-size:.78rem;color:var(--muted);margin-top:6px}.category-share{color:var(--muted);font-size:.76rem}.footer{text-align:center;color:var(--muted);font-size:.76rem;margin-top:18px}.topline{display:flex;justify-content:space-between;align-items:start;gap:10px}.install{white-space:nowrap;padding:8px 10px;font-size:.8rem}
+    @media(max-width:620px){.grid,.grid3{grid-template-columns:1fr}.report-stats{grid-template-columns:1fr 1fr}.stats{grid-template-columns:1fr 1fr}.forecast-grid{grid-template-columns:1fr 1fr}.hero .amount{font-size:2.35rem}.actions{grid-template-columns:1fr}.expense{grid-template-columns:1fr auto}.expense .iconbtn{grid-column:2}.table-wrap{overflow-x:auto}}
   </style>
 </head>
 <body>
@@ -121,10 +121,40 @@
       <div id="historyEmpty" class="empty hidden">Nenhum dia registrado ainda.</div>
     </div>
   </section>
+
+  <section id="reportsSection" class="card hidden">
+    <div class="section-title"><h2>📊 Relatórios e períodos salvos</h2><span class="badge" id="savedPeriodsBadge"></span></div>
+    <div class="notice" style="margin:0 0 12px">Ao criar um novo período, o período atual é arquivado aqui. Seus gastos e entradas continuam salvos neste aparelho.</div>
+    <label for="reportSelect">Escolha o período</label>
+    <select id="reportSelect" class="report-select"></select>
+    <div id="reportContent">
+      <div class="report-stats">
+        <div class="report-stat"><small>Valor inicial</small><strong id="reportBudget">R$ 0,00</strong></div>
+        <div class="report-stat"><small>Entradas</small><strong id="reportIncome">R$ 0,00</strong></div>
+        <div class="report-stat"><small>Total gasto</small><strong id="reportSpent">R$ 0,00</strong></div>
+        <div class="report-stat"><small>Saldo final/atual</small><strong id="reportBalance">R$ 0,00</strong></div>
+      </div>
+      <div class="report-note" id="reportPeriodLabel"></div>
+      <div class="report-block">
+        <h3>Gastos por categoria</h3>
+        <div class="table-wrap"><table><thead><tr><th>Categoria</th><th>Quantidade</th><th>Total</th><th>% dos gastos</th></tr></thead><tbody id="categoryReportBody"></tbody></table></div>
+        <div id="categoryEmpty" class="empty hidden">Nenhum gasto registrado neste período.</div>
+      </div>
+      <div class="report-block">
+        <h3>Entradas do período</h3>
+        <div id="reportIncomeList" class="expenses"></div>
+      </div>
+      <div class="report-block">
+        <h3>Gastos do período</h3>
+        <div id="reportExpenseList" class="expenses"></div>
+      </div>
+    </div>
+  </section>
+
   <div class="footer">O limite real muda conforme seus gastos e entradas extras. As projeções são simulações e não alteram o valor de hoje.</div>
 </div>
 <script>
-const STORAGE='meuLimiteDiario.v1'; let state=null; let selectedDays=7; let deferredPrompt=null;
+const STORAGE='meuLimiteDiario.v1'; const HISTORY_STORAGE='meuLimiteDiario.periodos.v1'; let state=null; let archives=[]; let selectedDays=7; let deferredPrompt=null; let selectedReportId=null;
 const $=id=>document.getElementById(id); const money=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v||0));
 const parseMoney=s=>Number(String(s).replace(/\./g,'').replace(',','.').replace(/[^0-9.-]/g,''))||0;
 const iso=d=>{const x=new Date(d); return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`};
@@ -132,16 +162,26 @@ const fromISO=s=>{const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,
 const diffDays=(a,b)=>Math.floor((fromISO(b)-fromISO(a))/86400000);
 const fmtDate=s=>fromISO(s).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
 function todayISO(){return iso(new Date())}
-function save(){localStorage.setItem(STORAGE,JSON.stringify(state))}
-function load(){
-  try{
-    state=JSON.parse(localStorage.getItem(STORAGE));
-    if(state){
-      if(!Array.isArray(state.expenses))state.expenses=[];
-      if(!Array.isArray(state.incomes))state.incomes=[];
-    }
-  }catch(e){state=null}
+function normalizePeriod(p){
+  if(!p)return null;
+  if(!Array.isArray(p.expenses))p.expenses=[];
+  if(!Array.isArray(p.incomes))p.incomes=[];
+  return p;
 }
+function save(){localStorage.setItem(STORAGE,JSON.stringify(state))}
+function saveArchives(){localStorage.setItem(HISTORY_STORAGE,JSON.stringify(archives))}
+function load(){
+  try{state=normalizePeriod(JSON.parse(localStorage.getItem(STORAGE)))}catch(e){state=null}
+  try{archives=JSON.parse(localStorage.getItem(HISTORY_STORAGE))||[]; if(!Array.isArray(archives))archives=[]; archives=archives.map(normalizePeriod).filter(Boolean)}catch(e){archives=[]}
+}
+function archiveCurrentPeriod(){
+  if(!state)return;
+  const copy=JSON.parse(JSON.stringify(state));
+  copy.archivedAt=Date.now();
+  if(!archives.some(p=>p.createdAt===copy.createdAt))archives.unshift(copy);
+  saveArchives();
+}
+
 function periodDays(){return state.days}
 function endDate(){return addDays(state.startDate,state.days-1)}
 function expensesOn(date){return state.expenses.filter(e=>e.date===date)}
@@ -162,7 +202,7 @@ function limitForDate(date){
 }
 function daysRemainingFrom(date){let idx=dayIndex(date); return Math.max(0,state.days-idx)}
 function render(){
-  if(!state){$('setupCard').classList.remove('hidden');$('dashboard').classList.add('hidden');return}
+  if(!state){$('setupCard').classList.remove('hidden');$('dashboard').classList.add('hidden');renderReports();return}
   $('setupCard').classList.add('hidden');$('dashboard').classList.remove('hidden');
   const d=effectiveDate(), lim=limitForDate(d), spent=spentOn(d), still=lim-spent, bal=remainingBalance(), left=daysRemainingFrom(d);
   $('todayLabel').textContent=`Hoje — ${new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}`;
@@ -187,7 +227,7 @@ function render(){
   else if(spent>lim){msg.classList.add('over'); msg.textContent=`Você passou ${money(spent-lim)} do limite de hoje. A coluna ao lado mostra como o saldo que restou seria dividido pelos próximos dias.`}
   else if(spent>0){msg.classList.add('good'); msg.textContent=`O seu limite de hoje continua sendo ${money(lim)}. A coluna ao lado é só uma simulação: ela mostra o valor por dia amanhã se você não gastar mais nada hoje.`}
   else{msg.textContent=`Hoje seu limite é ${money(lim)}. A coluna ao lado é apenas uma simulação do que aconteceria amanhã se você não gastar nada hoje.`}
-  $('periodInfo').textContent=`${fmtDate(state.startDate)} a ${fmtDate(endDate())} • Entradas: ${money(totalIncome())}`; renderHistory(); renderExpenses(); renderIncomes();
+  $('periodInfo').textContent=`${fmtDate(state.startDate)} a ${fmtDate(endDate())} • Entradas: ${money(totalIncome())}`; renderHistory(); renderExpenses(); renderIncomes(); renderReports();
 }
 function renderHistory(){
   let html='';
@@ -205,6 +245,37 @@ function renderHistory(){
   }
   $('historyBody').innerHTML=html; $('historyEmpty').classList.toggle('hidden',state.days>0)
 }
+function periodEnd(p){return addDays(p.startDate,p.days-1)}
+function pTotalSpent(p){return (p.expenses||[]).reduce((s,e)=>s+Number(e.value||0),0)}
+function pTotalIncome(p){return (p.incomes||[]).reduce((s,e)=>s+Number(e.value||0),0)}
+function pTotalAvailable(p){return Number(p.budget||0)+pTotalIncome(p)}
+function reportOptions(){
+  const items=[];
+  if(state)items.push({id:'current',label:`Período atual • ${fmtDate(state.startDate)} a ${fmtDate(periodEnd(state))}`,period:state,current:true});
+  archives.forEach((p,i)=>items.push({id:`archive-${i}`,label:`Período salvo • ${fmtDate(p.startDate)} a ${fmtDate(periodEnd(p))}`,period:p,current:false}));
+  return items;
+}
+function renderReports(){
+  const section=$('reportsSection'), select=$('reportSelect');
+  const options=reportOptions();
+  if(!options.length){section.classList.add('hidden');return}
+  section.classList.remove('hidden');
+  $('savedPeriodsBadge').textContent=`${archives.length} ${archives.length===1?'período salvo':'períodos salvos'}`;
+  if(!selectedReportId || !options.some(o=>o.id===selectedReportId))selectedReportId=state?'current':options[0].id;
+  select.innerHTML=options.map(o=>`<option value="${o.id}" ${o.id===selectedReportId?'selected':''}>${o.label}</option>`).join('');
+  const item=options.find(o=>o.id===selectedReportId)||options[0], p=item.period;
+  const spent=pTotalSpent(p), income=pTotalIncome(p), available=pTotalAvailable(p), balance=available-spent;
+  $('reportBudget').textContent=money(p.budget); $('reportIncome').textContent=money(income); $('reportSpent').textContent=money(spent); $('reportBalance').textContent=money(balance);
+  $('reportBalance').className=balance<0?'negative':'positive';
+  $('reportPeriodLabel').textContent=`${item.current?'Período atual':'Período arquivado'}: ${fmtDate(p.startDate)} a ${fmtDate(periodEnd(p))} • ${p.days} ${p.days===1?'dia':'dias'} • Total disponível: ${money(available)}`;
+  const cats={};
+  (p.expenses||[]).forEach(e=>{const c=(e.cat||'Sem categoria').trim()||'Sem categoria'; if(!cats[c])cats[c]={count:0,total:0}; cats[c].count++; cats[c].total+=Number(e.value||0)});
+  const catRows=Object.entries(cats).sort((a,b)=>b[1].total-a[1].total);
+  $('categoryReportBody').innerHTML=catRows.map(([cat,v])=>`<tr><td>${cat}</td><td>${v.count}</td><td>${money(v.total)}</td><td class="category-share">${spent>0?((v.total/spent)*100).toFixed(1).replace('.',',')+'%':'0%'}</td></tr>`).join('');
+  $('categoryEmpty').classList.toggle('hidden',catRows.length>0);
+  $('reportIncomeList').innerHTML=(p.incomes||[]).length?[...(p.incomes||[])].sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id).map(e=>`<div class="expense"><div><strong>${e.desc||'Entrada extra'}</strong><div class="meta">${fmtDate(e.date)}</div></div><div class="value income-value">+${money(e.value)}</div></div>`).join(''):'<div class="empty">Nenhuma entrada registrada neste período.</div>';
+  $('reportExpenseList').innerHTML=(p.expenses||[]).length?[...(p.expenses||[])].sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id).map(e=>`<div class="expense"><div><strong>${e.desc||'Gasto'}</strong><div class="meta">${fmtDate(e.date)} • ${e.cat||'Sem categoria'}</div></div><div class="value">${money(e.value)}</div></div>`).join(''):'<div class="empty">Nenhum gasto registrado neste período.</div>';
+}
 function renderExpenses(){
   const list=$('expenseList'); if(!state.expenses.length){list.innerHTML='<div class="empty">Nenhum gasto lançado.</div>';return}
   list.innerHTML=[...state.expenses].sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id).map(e=>`<div class="expense"><div><strong>${e.desc||'Gasto'}</strong><div class="meta">${fmtDate(e.date)}${e.cat?' • '+e.cat:''}</div></div><div class="value">${money(e.value)}</div><button class="iconbtn" onclick="removeExpense(${e.id})">Excluir</button></div>`).join('')
@@ -220,14 +291,15 @@ window.removeExpense=removeExpense;
 window.removeIncome=removeIncome;
 function resetForm(){selectedDays=7;document.querySelectorAll('.period').forEach(b=>b.classList.toggle('active',b.dataset.days==='7'));$('customWrap').classList.add('hidden');$('budget').value='';$('customDays').value='';$('startDate').value=todayISO()}
 document.querySelectorAll('.period').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.period').forEach(b=>b.classList.remove('active'));btn.classList.add('active');$('customWrap').classList.toggle('hidden',btn.dataset.days!=='custom');selectedDays=btn.dataset.days==='custom'?'custom':Number(btn.dataset.days)}));
-$('startBtn').addEventListener('click',()=>{let budget=parseMoney($('budget').value);let days=selectedDays==='custom'?Number($('customDays').value):selectedDays;let start=$('startDate').value||todayISO();if(budget<=0||!days||days<1){alert('Informe um valor disponível e um período válido.');return}state={budget,days,startDate:start,expenses:[],incomes:[],createdAt:Date.now()};save();render()});
+$('startBtn').addEventListener('click',()=>{let budget=parseMoney($('budget').value);let days=selectedDays==='custom'?Number($('customDays').value):selectedDays;let start=$('startDate').value||todayISO();if(budget<=0||!days||days<1){alert('Informe um valor disponível e um período válido.');return}state={budget,days,startDate:start,expenses:[],incomes:[],createdAt:Date.now()};selectedReportId='current';save();render()});
 $('addBtn').addEventListener('click',()=>{$('incomeCard').classList.add('hidden');$('expenseCard').classList.remove('hidden');$('expenseDate').value=effectiveDate();$('expenseValue').focus()});
 $('closeExpense').addEventListener('click',()=>$('expenseCard').classList.add('hidden'));
 $('addIncomeBtn').addEventListener('click',()=>{$('expenseCard').classList.add('hidden');$('incomeCard').classList.remove('hidden');$('incomeDate').value=effectiveDate();$('incomeValue').focus()});
 $('closeIncome').addEventListener('click',()=>$('incomeCard').classList.add('hidden'));
 $('saveExpense').addEventListener('click',()=>{let value=parseMoney($('expenseValue').value),date=$('expenseDate').value,desc=$('expenseDesc').value.trim(),cat=$('expenseCat').value;if(value<=0||!date){alert('Informe o valor e a data do gasto.');return} if(date<state.startDate||date>endDate()){alert('A data precisa estar dentro do período atual.');return}state.expenses.push({id:Date.now(),value,date,desc,cat});save();$('expenseValue').value='';$('expenseDesc').value='';$('expenseCat').value='';render()});
 $('saveIncome').addEventListener('click',()=>{let value=parseMoney($('incomeValue').value),date=$('incomeDate').value,desc=$('incomeDesc').value.trim();if(value<=0||!date){alert('Informe o valor e a data da entrada.');return}if(date<state.startDate||date>endDate()){alert('A data precisa estar dentro do período atual.');return}state.incomes.push({id:Date.now(),value,date,desc});save();$('incomeValue').value='';$('incomeDesc').value='';render()});
-$('resetBtn').addEventListener('click',()=>{if(confirm('Criar um novo período? O período atual será apagado deste aparelho.')){localStorage.removeItem(STORAGE);state=null;resetForm();render()}});
+$('resetBtn').addEventListener('click',()=>{if(confirm('Criar um novo período? O período atual será salvo no histórico e continuará disponível em Relatórios.')){archiveCurrentPeriod();localStorage.removeItem(STORAGE);state=null;selectedReportId=archives.length?'archive-0':null;resetForm();render()}});
+$('reportSelect').addEventListener('change',e=>{selectedReportId=e.target.value;renderReports()});
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('installBtn').classList.remove('hidden')});$('installBtn').addEventListener('click',async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$('installBtn').classList.add('hidden')});
 if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(()=>{})}
 load();resetForm();render();
