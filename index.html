@@ -44,14 +44,21 @@
   <section id="setupCard" class="card">
     <div class="section-title"><h2>Criar um período</h2><span class="badge">Seus dados ficam neste aparelho</span></div>
     <div class="grid">
-      <div><label for="budget">Valor disponível</label><input id="budget" inputmode="decimal" placeholder="Ex.: 600,00" /></div>
+      <div><label for="budget">Valor disponível</label><input id="budget" inputmode="numeric" autocomplete="off" placeholder="0,00" /></div>
       <div><label for="startDate">Data de início</label><input id="startDate" type="date" /></div>
     </div>
+    <div class="report-note">Nos campos de valor, basta digitar os números: <strong>1590</strong> vira <strong>15,90</strong>.</div>
     <label style="margin-top:13px">Período</label>
     <div class="periods" id="periods">
       <button class="period" data-days="2">2 dias</button><button class="period" data-days="3">3 dias</button><button class="period" data-days="4">4 dias</button><button class="period active" data-days="7">7 dias</button><button class="period" data-days="30">30 dias</button><button class="period" data-days="custom">Personalizado</button>
     </div>
-    <div id="customWrap" class="hidden"><label for="customDays">Quantidade de dias</label><input id="customDays" type="number" min="1" max="365" placeholder="Ex.: 12" /></div>
+    <div id="customWrap" class="hidden">
+      <div class="grid">
+        <div><label for="customEndDate">Data de término</label><input id="customEndDate" type="date" /></div>
+        <div><label for="customDays">Quantidade de dias</label><input id="customDays" type="number" min="1" max="365" placeholder="Ex.: 12" /></div>
+      </div>
+      <div class="report-note">Você pode escolher a data de término ou informar a quantidade de dias. O outro campo será calculado automaticamente.</div>
+    </div>
     <button id="startBtn" class="primary" style="width:100%;margin-top:14px">Começar período</button>
   </section>
 
@@ -86,7 +93,7 @@
       <div class="section-title"><h2>Registrar gasto</h2><button id="closeExpense" class="ghost">Fechar</button></div>
       <div class="expense-form">
         <div class="grid">
-          <div><label for="expenseValue">Valor</label><input id="expenseValue" inputmode="decimal" placeholder="Ex.: 18,90" /></div>
+          <div><label for="expenseValue">Valor</label><input id="expenseValue" inputmode="numeric" autocomplete="off" placeholder="0,00" /></div>
           <div><label for="expenseDate">Data</label><input id="expenseDate" type="date" /></div>
         </div>
         <div class="grid">
@@ -103,7 +110,7 @@
       <div class="notice income-note" style="margin:0 0 12px">O valor será somado ao saldo do período e o limite diário será recalculado automaticamente.</div>
       <div class="expense-form">
         <div class="grid">
-          <div><label for="incomeValue">Valor da entrada</label><input id="incomeValue" inputmode="decimal" placeholder="Ex.: 15,00" /></div>
+          <div><label for="incomeValue">Valor da entrada</label><input id="incomeValue" inputmode="numeric" autocomplete="off" placeholder="0,00" /></div>
           <div><label for="incomeDate">Data</label><input id="incomeDate" type="date" /></div>
         </div>
         <div><label for="incomeDesc">Descrição (opcional)</label><input id="incomeDesc" placeholder="Ex.: Dinheiro extra" /></div>
@@ -154,9 +161,11 @@
   <div class="footer">O limite real muda conforme seus gastos e entradas extras. As projeções são simulações e não alteram o valor de hoje.</div>
 </div>
 <script>
-const STORAGE='meuLimiteDiario.v1'; const HISTORY_STORAGE='meuLimiteDiario.periodos.v1'; let state=null; let archives=[]; let selectedDays=7; let deferredPrompt=null; let selectedReportId=null;
+const STORAGE='meuLimiteDiario.v1'; const HISTORY_STORAGE='meuLimiteDiario.periodos.v1'; let state=null; let archives=[]; let selectedDays=7; let customPeriodMode='end'; let deferredPrompt=null; let selectedReportId=null;
 const $=id=>document.getElementById(id); const money=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v||0));
 const parseMoney=s=>Number(String(s).replace(/\./g,'').replace(',','.').replace(/[^0-9.-]/g,''))||0;
+const formatMoneyDigits=value=>{const digits=String(value||'').replace(/\D/g,'');if(!digits)return '';const cents=Number(digits)/100;return cents.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})};
+function bindMoneyInput(id){const el=$(id);el.addEventListener('input',e=>{const digits=String(el.value||'').replace(/\D/g,'');if(e.inputType==='deleteContentBackward'&&digits&&!Number(digits)){el.value='';return}el.value=formatMoneyDigits(el.value)});el.addEventListener('focus',()=>{setTimeout(()=>{try{el.setSelectionRange(el.value.length,el.value.length)}catch(e){}},0)});el.addEventListener('click',()=>{setTimeout(()=>{try{el.setSelectionRange(el.value.length,el.value.length)}catch(e){}},0)})}
 const iso=d=>{const x=new Date(d); return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`};
 const fromISO=s=>{const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d)}; const addDays=(s,n)=>{let d=fromISO(s);d.setDate(d.getDate()+n);return iso(d)};
 const diffDays=(a,b)=>Math.floor((fromISO(b)-fromISO(a))/86400000);
@@ -289,9 +298,15 @@ function removeExpense(id){state.expenses=state.expenses.filter(e=>e.id!==id);sa
 function removeIncome(id){state.incomes=state.incomes.filter(e=>e.id!==id);save();render()}
 window.removeExpense=removeExpense;
 window.removeIncome=removeIncome;
-function resetForm(){selectedDays=7;document.querySelectorAll('.period').forEach(b=>b.classList.toggle('active',b.dataset.days==='7'));$('customWrap').classList.add('hidden');$('budget').value='';$('customDays').value='';$('startDate').value=todayISO()}
-document.querySelectorAll('.period').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.period').forEach(b=>b.classList.remove('active'));btn.classList.add('active');$('customWrap').classList.toggle('hidden',btn.dataset.days!=='custom');selectedDays=btn.dataset.days==='custom'?'custom':Number(btn.dataset.days)}));
-$('startBtn').addEventListener('click',()=>{let budget=parseMoney($('budget').value);let days=selectedDays==='custom'?Number($('customDays').value):selectedDays;let start=$('startDate').value||todayISO();if(budget<=0||!days||days<1){alert('Informe um valor disponível e um período válido.');return}state={budget,days,startDate:start,expenses:[],incomes:[],createdAt:Date.now()};selectedReportId='current';save();render()});
+function updateCustomDateLimits(){const start=$('startDate').value||todayISO();$('customEndDate').min=start;$('customEndDate').max=addDays(start,364)}
+function syncCustomFromDays(){const start=$('startDate').value||todayISO(),days=Number($('customDays').value);updateCustomDateLimits();if(days>=1&&days<=365)$('customEndDate').value=addDays(start,days-1)}
+function syncCustomFromEnd(){const start=$('startDate').value||todayISO(),end=$('customEndDate').value;updateCustomDateLimits();if(!end){$('customDays').value='';return}const days=diffDays(start,end)+1;if(days>=1&&days<=365)$('customDays').value=days;else $('customDays').value=''}
+function resetForm(){selectedDays=7;customPeriodMode='end';document.querySelectorAll('.period').forEach(b=>b.classList.toggle('active',b.dataset.days==='7'));$('customWrap').classList.add('hidden');$('budget').value='';$('customDays').value='';$('customEndDate').value='';$('startDate').value=todayISO();updateCustomDateLimits()}
+document.querySelectorAll('.period').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.period').forEach(b=>b.classList.remove('active'));btn.classList.add('active');$('customWrap').classList.toggle('hidden',btn.dataset.days!=='custom');selectedDays=btn.dataset.days==='custom'?'custom':Number(btn.dataset.days);if(selectedDays==='custom')updateCustomDateLimits()}));
+$('customDays').addEventListener('input',()=>{customPeriodMode='days';syncCustomFromDays()});
+$('customEndDate').addEventListener('change',()=>{customPeriodMode='end';syncCustomFromEnd()});
+$('startDate').addEventListener('change',()=>{updateCustomDateLimits();if(selectedDays==='custom'){if(customPeriodMode==='end'&&$('customEndDate').value)syncCustomFromEnd();else if($('customDays').value)syncCustomFromDays()}});
+$('startBtn').addEventListener('click',()=>{let budget=parseMoney($('budget').value);let start=$('startDate').value||todayISO();let days=selectedDays;if(selectedDays==='custom'){const end=$('customEndDate').value;days=end?diffDays(start,end)+1:Number($('customDays').value)}if(budget<=0||!days||days<1||days>365){alert('Informe um valor disponível e um período válido de até 365 dias.');return}if(selectedDays==='custom'&&$('customEndDate').value&&$('customEndDate').value<start){alert('A data de término precisa ser igual ou posterior à data de início.');return}state={budget,days,startDate:start,expenses:[],incomes:[],createdAt:Date.now()};selectedReportId='current';save();render()});
 $('addBtn').addEventListener('click',()=>{$('incomeCard').classList.add('hidden');$('expenseCard').classList.remove('hidden');$('expenseDate').value=effectiveDate();$('expenseValue').focus()});
 $('closeExpense').addEventListener('click',()=>$('expenseCard').classList.add('hidden'));
 $('addIncomeBtn').addEventListener('click',()=>{$('expenseCard').classList.add('hidden');$('incomeCard').classList.remove('hidden');$('incomeDate').value=effectiveDate();$('incomeValue').focus()});
@@ -302,6 +317,7 @@ $('resetBtn').addEventListener('click',()=>{if(confirm('Criar um novo período? 
 $('reportSelect').addEventListener('change',e=>{selectedReportId=e.target.value;renderReports()});
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('installBtn').classList.remove('hidden')});$('installBtn').addEventListener('click',async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$('installBtn').classList.add('hidden')});
 if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(()=>{})}
+['budget','expenseValue','incomeValue'].forEach(bindMoneyInput);
 load();resetForm();render();
 </script>
 </body>
