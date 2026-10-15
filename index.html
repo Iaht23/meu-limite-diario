@@ -30,7 +30,7 @@
     .section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.section-title h2{font-size:1.08rem;margin:0}.badge{font-size:.76rem;color:var(--muted)}
     table{width:100%;border-collapse:collapse;font-size:.86rem}th,td{text-align:left;padding:10px 7px;border-bottom:1px solid var(--line)}th{color:var(--muted);font-size:.76rem;text-transform:uppercase}.positive{color:#2e7454;font-weight:700}.negative{color:#a14141;font-weight:700}
     .empty{color:var(--muted);font-size:.9rem;text-align:center;padding:20px 8px}.expenses{display:grid;gap:8px;margin-top:12px}.expense{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;border-bottom:1px solid var(--line);padding:9px 0}.expense:last-child{border-bottom:0}.expense .meta{font-size:.75rem;color:var(--muted)}.expense .value{font-weight:800}.iconbtn{padding:7px 9px;border-radius:9px;background:#f6eeee;color:var(--danger)}
-    .report-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}.report-stat{background:#f7faf9;border:1px solid var(--line);border-radius:13px;padding:11px}.report-stat small{display:block;color:var(--muted);font-size:.72rem}.report-stat strong{display:block;margin-top:5px;font-size:.98rem}.report-block{margin-top:16px}.report-block h3{font-size:.92rem;margin:0 0 8px}.report-select{max-width:100%;margin-top:8px}.report-note{font-size:.78rem;color:var(--muted);margin-top:6px}.category-share{color:var(--muted);font-size:.76rem}.footer{text-align:center;color:var(--muted);font-size:.76rem;margin-top:18px}.topline{display:flex;justify-content:space-between;align-items:start;gap:10px}.install{white-space:nowrap;padding:8px 10px;font-size:.8rem}
+    .report-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}.report-stat{background:#f7faf9;border:1px solid var(--line);border-radius:13px;padding:11px}.report-stat small{display:block;color:var(--muted);font-size:.72rem}.report-stat strong{display:block;margin-top:5px;font-size:.98rem}.report-block{margin-top:16px}.report-block h3{font-size:.92rem;margin:0 0 8px}.report-select{max-width:100%;margin-top:8px}.report-note{font-size:.78rem;color:var(--muted);margin-top:6px}.edit-period-panel{border:1px solid var(--line);background:#f8fbfa;border-radius:14px;padding:14px;margin-top:12px}.edit-period-panel h3{font-size:.95rem;margin:0 0 8px}.edit-period-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.category-share{color:var(--muted);font-size:.76rem}.footer{text-align:center;color:var(--muted);font-size:.76rem;margin-top:18px}.topline{display:flex;justify-content:space-between;align-items:start;gap:10px}.install{white-space:nowrap;padding:8px 10px;font-size:.8rem}
     @media(max-width:620px){.grid,.grid3{grid-template-columns:1fr}.report-stats{grid-template-columns:1fr 1fr}.stats{grid-template-columns:1fr 1fr}.forecast-grid{grid-template-columns:1fr 1fr}.hero .amount{font-size:2.35rem}.actions{grid-template-columns:1fr}.expense{grid-template-columns:1fr auto}.expense .iconbtn{grid-column:2}.table-wrap{overflow-x:auto}}
   </style>
 </head>
@@ -134,6 +134,21 @@
     <div class="notice" style="margin:0 0 12px">Ao criar um novo período, o período atual é arquivado aqui. Seus gastos e entradas continuam salvos neste aparelho.</div>
     <label for="reportSelect">Escolha o período</label>
     <select id="reportSelect" class="report-select"></select>
+    <button id="editPeriodBtn" class="secondary" style="width:100%;margin-top:10px" type="button">✏️ Editar período selecionado</button>
+    <div id="editPeriodForm" class="edit-period-panel hidden">
+      <h3>Editar dados do período</h3>
+      <p class="report-note" style="margin:0 0 12px">Você pode alterar o valor inicial e as datas. Os gastos e as entradas serão preservados; para manter todos os lançamentos, o novo intervalo precisa incluir as datas deles.</p>
+      <div class="grid">
+        <div><label for="editBudget">Valor inicial disponível</label><input id="editBudget" inputmode="numeric" autocomplete="off" placeholder="0,00" /></div>
+        <div><label for="editStartDate">Data de início</label><input id="editStartDate" type="date" /></div>
+      </div>
+      <div class="grid" style="margin-top:12px">
+        <div><label for="editEndDate">Data de término</label><input id="editEndDate" type="date" /></div>
+        <div><label for="editDays">Quantidade de dias</label><input id="editDays" type="number" min="1" max="365" /></div>
+      </div>
+      <div class="report-note">A data de término e a quantidade de dias se atualizam automaticamente uma à outra.</div>
+      <div class="edit-period-actions"><button id="saveEditedPeriod" class="primary" type="button">Salvar alterações</button><button id="cancelEditPeriod" class="ghost" type="button">Cancelar</button></div>
+    </div>
     <div id="reportContent">
       <div class="report-stats">
         <div class="report-stat"><small>Valor inicial</small><strong id="reportBudget">R$ 0,00</strong></div>
@@ -161,7 +176,7 @@
   <div class="footer">O limite real muda conforme seus gastos e entradas extras. As projeções são simulações e não alteram o valor de hoje.</div>
 </div>
 <script>
-const STORAGE='meuLimiteDiario.v1'; const HISTORY_STORAGE='meuLimiteDiario.periodos.v1'; let state=null; let archives=[]; let selectedDays=7; let customPeriodMode='end'; let deferredPrompt=null; let selectedReportId=null;
+const STORAGE='meuLimiteDiario.v1'; const HISTORY_STORAGE='meuLimiteDiario.periodos.v1'; let state=null; let archives=[]; let selectedDays=7; let customPeriodMode='end'; let editPeriodMode='end'; let deferredPrompt=null; let selectedReportId=null;
 const $=id=>document.getElementById(id); const money=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v||0));
 const parseMoney=s=>Number(String(s).replace(/\./g,'').replace(',','.').replace(/[^0-9.-]/g,''))||0;
 const formatMoneyDigits=value=>{const digits=String(value||'').replace(/\D/g,'');if(!digits)return '';const cents=Number(digits)/100;return cents.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})};
@@ -264,6 +279,23 @@ function reportOptions(){
   archives.forEach((p,i)=>items.push({id:`archive-${i}`,label:`Período salvo • ${fmtDate(p.startDate)} a ${fmtDate(periodEnd(p))}`,period:p,current:false}));
   return items;
 }
+function selectedReportItem(){return reportOptions().find(o=>o.id===selectedReportId)||null}
+function updateEditDateLimits(){const start=$('editStartDate').value||todayISO();$('editEndDate').min=start;$('editEndDate').max=addDays(start,364)}
+function syncEditFromDays(){const start=$('editStartDate').value||todayISO(),days=Number($('editDays').value);updateEditDateLimits();if(days>=1&&days<=365)$('editEndDate').value=addDays(start,days-1);else $('editEndDate').value=''}
+function syncEditFromEnd(){const start=$('editStartDate').value||todayISO(),end=$('editEndDate').value;updateEditDateLimits();if(!end){$('editDays').value='';return}const days=diffDays(start,end)+1;if(days>=1&&days<=365)$('editDays').value=days;else $('editDays').value=''}
+function openEditPeriod(){const item=selectedReportItem();if(!item)return;const p=item.period;$('editBudget').value=Number(p.budget||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});$('editStartDate').value=p.startDate;$('editEndDate').value=periodEnd(p);$('editDays').value=p.days;editPeriodMode='end';updateEditDateLimits();$('editPeriodForm').classList.remove('hidden')}
+function saveEditedPeriod(){
+  const item=selectedReportItem();if(!item){alert('Selecione um período para editar.');return}
+  const budget=parseMoney($('editBudget').value),start=$('editStartDate').value;let end=$('editEndDate').value,days;
+  if(editPeriodMode==='days'){days=Number($('editDays').value);if(start&&days>=1&&days<=365)end=addDays(start,days-1)}else{days=start&&end?diffDays(start,end)+1:0}
+  if(budget<=0||!start||!end||!days||days<1||days>365){alert('Informe um valor inicial positivo e um período válido de 1 a 365 dias.');return}
+  if(end<start){alert('A data de término precisa ser igual ou posterior à data de início.');return}
+  const p=item.period,transactions=[...(p.expenses||[]),...(p.incomes||[])];
+  if(transactions.some(t=>t.date&&(t.date<start||t.date>end))){alert('Não foi possível salvar: há gastos ou entradas fora das novas datas. Para preservar todos os lançamentos, escolha um intervalo que inclua as datas deles.');return}
+  p.budget=budget;p.startDate=start;p.days=days;
+  if(item.current)save();else{const index=Number(item.id.slice('archive-'.length));if(!Number.isInteger(index)||!archives[index]){alert('Não foi possível localizar esse período salvo.');return}archives[index]=p;saveArchives()}
+  $('editPeriodForm').classList.add('hidden');render();alert('Período atualizado com sucesso. Seus gastos e entradas foram preservados.');
+}
 function renderReports(){
   const section=$('reportsSection'), select=$('reportSelect');
   const options=reportOptions();
@@ -314,10 +346,16 @@ $('closeIncome').addEventListener('click',()=>$('incomeCard').classList.add('hid
 $('saveExpense').addEventListener('click',()=>{let value=parseMoney($('expenseValue').value),date=$('expenseDate').value,desc=$('expenseDesc').value.trim(),cat=$('expenseCat').value;if(value<=0||!date){alert('Informe o valor e a data do gasto.');return} if(date<state.startDate||date>endDate()){alert('A data precisa estar dentro do período atual.');return}state.expenses.push({id:Date.now(),value,date,desc,cat});save();$('expenseValue').value='';$('expenseDesc').value='';$('expenseCat').value='';render()});
 $('saveIncome').addEventListener('click',()=>{let value=parseMoney($('incomeValue').value),date=$('incomeDate').value,desc=$('incomeDesc').value.trim();if(value<=0||!date){alert('Informe o valor e a data da entrada.');return}if(date<state.startDate||date>endDate()){alert('A data precisa estar dentro do período atual.');return}state.incomes.push({id:Date.now(),value,date,desc});save();$('incomeValue').value='';$('incomeDesc').value='';render()});
 $('resetBtn').addEventListener('click',()=>{if(confirm('Criar um novo período? O período atual será salvo no histórico e continuará disponível em Relatórios.')){archiveCurrentPeriod();localStorage.removeItem(STORAGE);state=null;selectedReportId=archives.length?'archive-0':null;resetForm();render()}});
-$('reportSelect').addEventListener('change',e=>{selectedReportId=e.target.value;renderReports()});
+$('editPeriodBtn').addEventListener('click',openEditPeriod);
+$('cancelEditPeriod').addEventListener('click',()=>$('editPeriodForm').classList.add('hidden'));
+$('editDays').addEventListener('input',()=>{editPeriodMode='days';syncEditFromDays()});
+$('editEndDate').addEventListener('change',()=>{editPeriodMode='end';syncEditFromEnd()});
+$('editStartDate').addEventListener('change',()=>{updateEditDateLimits();if(editPeriodMode==='days'&&$('editDays').value)syncEditFromDays();else{if($('editEndDate').value&&$('editEndDate').value<$('editStartDate').value)$('editEndDate').value=$('editStartDate').value;syncEditFromEnd()}});
+$('saveEditedPeriod').addEventListener('click',saveEditedPeriod);
+$('reportSelect').addEventListener('change',e=>{selectedReportId=e.target.value;$('editPeriodForm').classList.add('hidden');renderReports()});
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('installBtn').classList.remove('hidden')});$('installBtn').addEventListener('click',async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$('installBtn').classList.add('hidden')});
 if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(()=>{})}
-['budget','expenseValue','incomeValue'].forEach(bindMoneyInput);
+['budget','expenseValue','incomeValue','editBudget'].forEach(bindMoneyInput);
 load();resetForm();render();
 </script>
 </body>
